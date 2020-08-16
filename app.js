@@ -2,6 +2,15 @@ const express = require("express");
 const http = require("http");
 var mysql = require('mysql');
 
+function createMySqlCon() {
+  return mysql.createConnection({
+    host: "your_host",
+    user: "your_user",
+    password: "your_password",
+    database: "your_database"
+  });
+}
+
 const port = process.env.PORT || 4002;
 const router = express.Router();
 const app = express();
@@ -16,19 +25,39 @@ app.use(function(req, res, next) {
 
 router.get("/", (req, res, next) => {
   console.log('Alive request');
-  res.send({ response: "I am aliveeeeeeeeeee" }).status(200);
+  res.send({ response: "I am alive" }).status(200);
   next();
 });
 
+router.get("/note/read", (req, res) =>{
+  var con = createMySqlCon();
+  // We will read all of the notes in the database and return it to the user
+  console.log('note read request');
+  con.connect((err) => {
+    if (err) {
+      console.log(err);
+      res.send({ response: 'failed to connecting to sql'})
+    } else {
+      // Connected to SQL
+      con.query('SELECT * FROM noteStorage', (err, result, fields) => {
+        if (err){
+          console.log(err);
+          console.log('failed to read all notes');
+          res.send({ response: 'failed to read all notes' });
+        } else {
+          console.log('read all notes successfully');
+          res.send({ response: result });          
+        }
+      })
+      console.log('disconnected from sql server');
+      con.end();
+    }
+  })
+})
+
 router.post("/note/insert", (req, res) => {
-  var con = mysql.createConnection({
-    host: "host",
-    user: "user",
-    password: "password",
-    database: "database_name"
-  });
+  var con = createMySqlCon();
   console.log('insert request');
-  console.log(req.body);
   const sqlStatement = `INSERT INTO noteStorage (title, comment) VALUES ('${req.body.title}', '${req.body.content}')`;
   con.connect((err) => {
     if (err) {
@@ -39,27 +68,48 @@ router.post("/note/insert", (req, res) => {
       con.query(sqlStatement, (err, result, fields) => {
         if (err) {
           console.log(err);
+          console.log('failed to insert note');
           res.send({ response: 'failed to insert note'});
         } else{
-          console.log(result);
+          console.log('inserted note successfully')
           res.send({ response: 'note inserted', key: result.insertId });
-          console.log(fields);
         }
       })
+      console.log('disconnected from sql server');
+      con.end();
+    }
+  })
+})
+
+router.post("/note/update", (req, res) => {
+  var con = createMySqlCon();
+  console.log('update request');
+  const sqlStatement = `UPDATE noteStorage SET title='${req.body.title}', comment='${req.body.content}' WHERE noteID=${req.body.key}`;
+  con.connect((err) => {
+    if (err) {
+      console.log(err);
+      res.send({ response: 'failed connecting to sql'});
+    } else {
+      console.log("Connected to SQL Server");
+      con.query(sqlStatement, (err, result, fields) => {
+        if (err) {
+          console.log(err);
+          console.log('failed to update note');
+          res.send({ response: 'failed to update note'});
+        } else{
+          console.log('note updated successfully');
+          res.send({ response: 'note updated', key: result.insertId });
+        }
+      })
+      console.log('disconnected from sql server');
       con.end();
     }
   })
 })
 
 router.post("/note/remove", (req, res) => {
-  var con = mysql.createConnection({
-    host: "host",
-    user: "user",
-    password: "password",
-    database: "database_name"
-  });
+  var con = createMySqlCon();
   console.log('remove request');
-  console.log(req.body);
   const sqlStatement = `DELETE FROM noteStorage WHERE noteID='${req.body.key}'`;
   con.connect((err) => {
     if (err) {
@@ -70,13 +120,14 @@ router.post("/note/remove", (req, res) => {
       con.query(sqlStatement, (err, result, fields) => {
         if (err) {
           console.log(err);
+          console.log('failed to delete note');
           res.send({ response: 'failed to delete note'});
         } else{
-          console.log(result);
-          res.send({ response: 'note delete' });
-          console.log(fields);
+          console.log('note deleted');
+          res.send({ response: 'note deleted' });
         }
       })
+      console.log('disconnected from sql server');
       con.end();
     }
   })
@@ -85,6 +136,8 @@ router.post("/note/remove", (req, res) => {
 app.use("/", router);
 app.use("/note/insert", router);
 app.use("/note/remove", router);
+app.use("/note/update", router);
+app.use("/note/read", router);
 
 module.exports = router;
 
