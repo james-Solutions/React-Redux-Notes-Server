@@ -2,7 +2,7 @@
 This is a Node JS Express server meant to interact with my React-Redux-Notes App. Currently it will Create and Delete notes from a MySQL Server.
 
 ## Todo:
-Add Update and Read functionality
+Make the posting of SQL more modular, we can make our sql calls into its own function.
 
 ## Getting Started
 
