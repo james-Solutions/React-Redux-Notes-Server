@@ -36,7 +36,7 @@ router.get("/", (req, res, next) => {
   next();
 });
 
-router.get("/note/read", async (req, res) =>{
+router.get("/note/read", (req, res) =>{
   var con = createMySqlCon();
   // We will read all of the notes in the database and return it to the user
   console.log('note read request');
